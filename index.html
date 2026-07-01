@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>POP PLAN ERP</title>
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="POP PLAN ERP" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="app-logged-out">
+  <section id="loginPage" class="login-page no-print">
+    <div class="login-card">
+      <div class="login-logo"><span>P</span></div>
+      <h1>POP PLAN ERP</h1>
+      <p>로그인 후 대시보드로 이동합니다.</p>
+      <label>아이디<input id="loginId" type="text" autocomplete="username" placeholder="admin" /></label>
+      <label>비밀번호<input id="loginPw" type="password" autocomplete="current-password" placeholder="비밀번호" /></label>
+      <label class="remember-id-row"><input id="rememberLoginId" type="checkbox" onchange="if(!this.checked)localStorage.removeItem('popPlanERPRememberedLoginId')" /> 아이디 저장</label>
+      <div id="loginMsg" class="login-msg"></div>
+      <button class="primary login-submit" type="button" onclick="loginERP()">로그인</button>
+      <details class="login-change-box">
+        <summary>아이디/비밀번호 변경</summary>
+        <label>현재 아이디<input id="loginCurrentId" type="text" placeholder="현재 아이디" /></label>
+        <label>현재 비밀번호<input id="loginCurrentPw" type="password" placeholder="현재 비밀번호" /></label>
+        <label>새 아이디<input id="loginNewId" type="text" placeholder="새 아이디" /></label>
+        <label>새 비밀번호<input id="loginNewPw" type="password" placeholder="새 비밀번호" /></label>
+        <button class="secondary login-change-submit" type="button" onclick="changeLoginCredentials()">로그인 정보 변경</button>
+      </details>
+      <p class="login-help">초기 계정: admin / Admin1234!</p>
+    </div>
+  </section>
+  <aside class="sidebar no-print">
+    <div class="brand"><span>P</span><strong>POP PLAN ERP</strong></div>
+    <button class="nav active" data-view="dashboard">대시보드</button>
+    <button class="nav" data-view="estimate">견적서</button>
+    <button class="nav" data-view="design">디자인진행</button>
+    <button class="nav" data-view="production">제작진행</button>
+    <button class="nav" data-view="shipping">출고진행</button>
+    <button class="nav" data-view="settlement">정산</button>
+  </aside>
+
+  <main>
+    <header class="topbar no-print">
+      <button id="backBtn" class="back-btn" type="button" onclick="goBackPage()">← 뒤로 가기</button>
+      <div class="top-title-wrap">
+        <h1 id="pageTitle">대시보드</h1>
+        <p class="top-sub">견적 → 디자인 → 제작 → 출고/설치 → 정산 순서로 단계 체크 진행</p>
+      </div>
+      <div class="top-actions">
+        <button class="logout-btn" onclick="logoutERP()">로그아웃</button>
+        <button id="installAppBtn" class="app-install-btn" onclick="installPopPlanApp()" style="display:none">앱으로 추가</button>
+        <button class="primary" onclick="openProjectModal()">+ 프로젝트 등록</button>
+        <button onclick="exportData()">백업 저장</button>
+        <label class="file-btn">백업 불러오기<input type="file" accept="application/json" onchange="importData(event)"></label>
+      </div>
+    </header>
+
+    <section id="dashboard" class="view active">
+      <div class="cards no-print dashboard-simple-cards">
+        <div class="card"><small>등록 프로젝트</small><b id="statTotalProjects">0</b></div>
+        <div class="card"><small>진행중</small><b id="statOpen">0</b></div>
+        <div class="card"><small>출고 예정</small><b id="statShippingReady">0</b></div>
+        <div class="card"><small>완료</small><b id="statDone">0</b></div>
+      </div>
+
+      <div class="panel no-print">
+        <div class="panel-head">
+          <div><h2>전체 진행 흐름</h2><p class="hint">각 항목에서 체크하면 다음 항목으로 자동 이동합니다.</p></div>
+        </div>
+        <div id="stageSummary" class="stage-summary"></div>
+      </div>
+
+
+
+      <div class="panel no-print schedule-panel compact-schedule-panel">
+        <div class="panel-head schedule-head">
+          <div>
+            <h2>전체 일정표</h2>
+            <p class="hint">버튼을 클릭하면 팝업창에서 전체 일정을 확인하고 수정/삭제할 수 있습니다.</p>
+          </div>
+          <button class="primary" onclick="openScheduleModal()">전체 일정표 보기</button>
+        </div>
+      </div>
+
+      <div class="panel no-print search-panel">
+        <div class="panel-head search-head">
+          <div>
+            <h2>프로젝트 검색</h2>
+            <p class="hint">진행중/완료 프로젝트를 프로젝트명, 거래처, 단계명으로 검색합니다.</p>
+          </div>
+          <div class="search-controls">
+            <input id="projectSearchInput" type="search" placeholder="프로젝트명 / 거래처 / 단계 검색" oninput="renderDashboard()" />
+            <select id="projectStatusFilter" onchange="renderDashboard()">
+              <option value="open">진행중 프로젝트</option>
+              <option value="done">완료 프로젝트</option>
+              <option value="all">전체 프로젝트</option>
+            </select>
+          </div>
+        </div>
+        <div id="searchedProjects" class="project-search-list"></div>
+      </div>
+
+      <div class="panel no-print completed-projects-panel">
+        <div class="panel-head">
+          <div>
+            <h2>완료 프로젝트 목록</h2>
+            <p class="hint">완료된 프로젝트를 한 줄 목록으로 확인하고, 상세/삭제를 바로 실행할 수 있습니다.</p>
+          </div>
+        </div>
+        <div id="completedProjects" class="completed-projects-list"></div>
+      </div>
+
+    </section>
+
+    <section id="estimate" class="view">
+      <div id="estimateAccessPanel" class="panel no-print estimate-lock-panel" style="display:none"></div>
+
+      <div id="estimateContent" class="estimate-protected">
+      
+      <div class="panel no-print stage-panel estimate-stage-compact-panel">
+        <div class="panel-head estimate-stage-head">
+          <div><h2>수정요청 / 견적 단계 항목</h2><p class="hint">견적 단계 프로젝트를 한 줄로 확인하고, 메모는 우측 아이콘으로 팝업 확인합니다.</p></div>
+        </div>
+        <div id="estimateStageList" class="stage-list estimate-stage-compact-list-wrap"></div>
+      </div>
+
+      <div class="estimate-toolbar no-print simplified-estimate-toolbar top-estimate-selector estimate-project-search-box estimate-search-top-center">
+        <input id="estimateProjectSearch" type="search" placeholder="견적서 프로젝트 검색: 프로젝트명 / 거래처 / 단계" oninput="renderEstimateProjectSearch()" onfocus="renderEstimateProjectSearch(true)" />
+        <select id="estimateProject" onchange="loadEstimateForProject()" style="display:none"></select>
+        <div id="estimateProjectSearchResults" class="estimate-project-search-results"></div>
+      </div>
+
+      <div class="project-memo-reference no-print estimate-memo-quickline">
+        <div id="estimateProjectMemoRef" class="memo-ref-body">선택된 프로젝트의 등록 메모는 견적 단계 항목 우측 아이콘으로 확인합니다.</div>
+      </div>
+
+
+      <div id="estimateCaptureArea" class="estimate-sheet print-only-area production-estimate professional-estimate">
+        <div class="pe-title-block">
+          <h2>제 작 비 명 세 서</h2>
+          <p>PRODUCTION ESTIMATE / INVOICE</p>
+        </div>
+
+        <div class="pe-header-grid">
+          <div class="pe-company">
+            <div class="pe-logo-line">p.o.p plan <b>피오피플랜</b></div>
+            <p>Marketing & Design Consulting Group</p>
+            <p>경기도 고양시 일산동구 장항동 585-2 ㈜피오피플랜</p>
+            <p>디스플레이 POP 제작전문 / POSM 제작전문</p>
+            <p>tel(02)2277-1224 / fax(02)543-5956</p>
+          </div>
+          <div class="pe-info-table">
+            <div><b>광고주 CLIENT:</b><input id="clientName" placeholder="거래처명" /></div>
+            <div><b>제작내용 PROJECT:</b><input id="estimateProjectName" placeholder="프로젝트명" /></div>
+            <div><b>제작번호 JOB NO.</b><span id="estimateNo" class="job-no">EST-0001</span></div>
+            <div><b>규격 SIZE:</b><input id="estimateSize" value="별도기준" /></div>
+            <div><b>수량 QUANTITY:</b><input id="estimateQuantity" value="별도기준" /></div>
+            <div><b>작성일자 DATE:</b><input id="estimateDate" type="date" /></div>
+          </div>
+        </div>
+
+        <div class="estimate-table-wrap pe-table-wrap">
+          <table class="estimate-table pro-table pe-table">
+            <thead>
+              <tr>
+                <th>품 명</th>
+                <th>내용 및 규격</th>
+                <th>수량</th>
+                <th>단가</th>
+                <th>금 액 AMOUNT</th>
+                <th>비고 REMARKS</th>
+                <th class="no-print">삭제</th>
+              </tr>
+            </thead>
+            <tbody id="estimateRows"></tbody>
+          </table>
+        </div>
+
+        <div class="pe-summary-grid">
+          <div class="pe-notes">
+            <p>* 물류배송방식은 배송방식에 따라 적용됩니다. 배송비/VAT 별도 조건은 비고에 표기합니다.</p>
+            <p>* 본 견적서는 제작의도와 최종 사양에 따라 변동될 수 있는 금액입니다.</p>
+            <p>* 작업 진행 중 중지 또는 사양 변경 시 진행률 기준 실비 정산 원칙으로 합니다.</p>
+            <textarea id="estimateMemo" placeholder="추가 견적 조건 및 비고"></textarea>
+          </div>
+          <table class="pe-total-table">
+            <tr><th>소계 / SUB-TOTAL</th><td id="supplyTotal">₩0</td></tr>
+            <tr><th>부가가치세 / VAT</th><td id="vatTotal">₩0</td></tr>
+            <tr class="grand"><th>총계 / GRAND TOTAL</th><td id="grandTotal">₩0</td></tr>
+            <tr><th>기타</th><td><input id="estimateEtc" placeholder="기타 조건" /></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="estimate-revision-panel no-print">
+        <div class="memo-ref-head"><b>견적 수정 이력</b><span>견적 저장 시 1차/2차/3차로 자동 보관</span></div>
+        <div class="revision-input-row">
+          <input id="estimateRevisionMemo" placeholder="수정 메모 예: 2차 단가 조정 / 수량 변경 / 설치비 제외" />
+        </div>
+        <div id="estimateRevisionList" class="estimate-revision-list"></div>
+      </div>
+
+      <div class="estimate-bottom-actions no-print">
+        <div class="estimate-bottom-left">
+          <button onclick="openEstimateProjectImages()">등록 이미지 확인</button>
+          <button onclick="openEstimatePreviousAttachments()">이전 첨부 이미지 보기</button>
+        </div>
+        <div class="estimate-bottom-center">
+          <button onclick="addEstimateRow()">품목 추가</button>
+          <button onclick="downloadEstimateExcel()">엑셀 다운로드</button>
+          <button onclick="downloadEstimateImage()">이미지 저장</button>
+          <button onclick="window.print()">견적서 프린트</button>
+        </div>
+        <div class="estimate-bottom-right">
+          <button onclick="saveEstimate()" class="primary save-estimate-bottom">견적서 저장</button>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <section id="design" class="view">
+      <div class="panel no-print stage-panel">
+        <div class="panel-head"><div><h2>디자인진행</h2><p class="hint">시안 확인/컨펌 후 체크하면 제작진행으로 이동합니다.</p></div></div>
+        <div id="designStageList" class="stage-list"></div>
+      </div>
+    </section>
+
+    <section id="production" class="view">
+      <div class="panel no-print stage-panel">
+        <div class="panel-head"><div><h2>제작진행</h2><p class="hint">출력·가공·조립·검수 완료 후 체크하면 출고진행으로 이동합니다.</p></div></div>
+        <div id="productionStageList" class="stage-list"></div>
+      </div>
+    </section>
+
+    <section id="shipping" class="view">
+      <div class="panel no-print stage-panel">
+        <div class="panel-head"><div><h2>출고진행</h2><p class="hint">출고 완료 후 체크하면 정산 단계로 이동합니다.</p></div></div>
+        <div id="shippingStageList" class="stage-list"></div>
+      </div>
+    </section>
+
+    <section id="settlement" class="view">
+      <div class="panel no-print stage-panel">
+        <div class="panel-head"><div><h2>정산</h2><p class="hint">견적서 확인 및 세금계산서/입금 여부를 체크한 뒤 정산완료 처리합니다.</p></div></div>
+        <div id="settlementStageList" class="stage-list"></div>
+      </div>
+
+      <div class="panel no-print settlement-estimate-panel">
+        <div class="panel-head settlement-preview-head">
+          <div>
+            <h2>견적서 검색</h2>
+            <p class="hint">저장된 견적서를 검색해 확인합니다. 정산 페이지 자체에는 금액 표시 영역을 노출하지 않습니다.</p>
+          </div>
+          <div class="settlement-preview-actions settlement-search-actions">
+            <input id="settlementEstimateSearchInput" type="search" placeholder="견적서 검색: 프로젝트명 / 거래처 / 견적번호" oninput="renderSettlementEstimateSearch()" />
+            <button class="primary" onclick="renderSettlementEstimatePreview()">견적서 보기</button>
+            <button onclick="printSettlementEstimate()">견적서 프린트</button>
+          </div>
+        </div>
+        <div id="settlementEstimateSearchResults" class="settlement-estimate-search-results"></div>
+        <div id="settlementEstimatePreview" class="settlement-estimate-preview">
+          <div class="empty">견적서를 검색한 뒤 선택하면 이곳에 미리보기가 표시됩니다.</div>
+        </div>
+      </div>
+
+      <div class="panel no-print completed-settlement-panel settlement-completed-integrated">
+        <div class="panel-head">
+          <div>
+            <h2>정산완료 내역</h2>
+            <p class="hint">버튼 클릭 시 정산 완료 목록을 정산 페이지 안에서 확인합니다.</p>
+          </div>
+          <div class="search-controls completed-settlement-toolbar">
+            <button id="completedSettlementToggleBtn" class="primary" onclick="toggleCompletedSettlementList()">정산완료 내역 보기</button>
+            <input id="completedSettlementSearch" type="search" placeholder="프로젝트명 / 거래처 검색" oninput="renderCompletedSettlement()" style="display:none" />
+          </div>
+        </div>
+        <div id="completedSettlementListWrap" class="completed-settlement-list-wrap" style="display:none">
+          <div id="completedSettlementList" class="completed-settlement-list"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="scheduleModal" class="modal no-print schedule-modal">
+    <div class="modal-box schedule-modal-box">
+      <div class="modal-title-row">
+        <div>
+          <h2>전체 일정표</h2>
+          <p class="hint">프로젝트 등록 시 ‘일정표에 등록하기’를 체크한 일정만 표시됩니다. 각 항목은 내용 수정/삭제가 가능합니다.</p>
+        </div>
+        <button onclick="closeScheduleModal()">닫기</button>
+      </div>
+      <div class="schedule-legend modal-legend">
+        <span><i class="dot due"></i> 등록 일정</span>
+      </div>
+      <div id="dashboardSchedule" class="dashboard-schedule list-only"></div>
+    </div>
+  </div>
+
+  <div id="projectModal" class="modal no-print">
+    <div class="modal-box">
+      <h2>프로젝트 등록/수정</h2>
+      <input id="pId" type="hidden" />
+      <label>프로젝트명<input id="pName" /></label>
+      <label>거래처<input id="pClient" /></label>
+      <label>프로젝트 등록일<input id="pDue" type="date" /></label>
+      <label>출고일<input id="pInstall" type="date" /></label>
+      <div class="schedule-register-box compact-schedule-option">
+        <label class="check-row"><input id="pScheduleEnable" type="checkbox" /> 일정표에 등록하기</label>
+        <p class="hint small">체크 시 프로젝트 등록일과 프로젝트명 기준으로 전체 일정표에 자동 등록됩니다. 날짜와 내용은 전체 일정표에서만 수정할 수 있으며, 출고 완료 시 자동 삭제됩니다.</p>
+      </div>
+      <label>참고 이미지<input id="pImage" type="file" accept="image/*" /></label>
+      <label>메모<textarea id="pMemo" rows="4" placeholder="프로젝트 참고사항, 작업 요청사항, 거래처 전달사항을 입력하세요."></textarea></label>
+      <div id="imagePreview"></div>
+      <div id="designImagePreview" class="design-preview"></div>
+      <div class="modal-actions">
+        <button onclick="closeProjectModal()">닫기</button>
+        <button class="primary" onclick="saveProject()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="imagePreviewModal" class="modal no-print image-preview-modal">
+    <div class="modal-box image-preview-box">
+      <div class="modal-title-row">
+        <h2>프로젝트 상세보기</h2>
+        <button onclick="closeImagePreview()">닫기</button>
+      </div>
+      <div id="imagePreviewContent" class="image-preview-content"></div>
+    </div>
+  </div>
+
+  <div id="estimatePreviewModal" class="modal no-print">
+    <div class="modal-box estimate-preview-box">
+      <div class="modal-title-row">
+        <h2>등록 견적서 미리보기</h2>
+        <button onclick="closeEstimatePreview()">닫기</button>
+      </div>
+      <div id="estimatePreviewContent" class="estimate-preview-content"></div>
+    </div>
+  </div>
+
+
+  <div id="recordDetailModal" class="modal no-print">
+    <div class="modal-box record-detail-box">
+      <div class="modal-title-row">
+        <h2>공정 기록 상세보기</h2>
+        <button onclick="closeRecordDetail()">닫기</button>
+      </div>
+      <div id="recordDetailContent" class="record-detail-content"></div>
+    </div>
+  </div>
+
+  <nav class="mobile-bottom-nav no-print">
+    <button class="nav active" data-view="dashboard">홈</button>
+    <button class="nav" data-view="estimate">견적</button>
+    <button class="nav" data-view="design">디자인</button>
+    <button class="nav" data-view="production">제작</button>
+    <button class="nav" data-view="shipping">출고</button>
+    <button class="nav" data-view="settlement">정산</button>
+  </nav>
+
+<script>
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="app.js"></script>
+<script src="api-client.js"></script>
+</body>
+</html>
